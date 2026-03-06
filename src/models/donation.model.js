@@ -3,9 +3,9 @@ const mongoose = require("mongoose");
 const donationSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    email: { type: String, required: true },
+    email: { type: String, required: false },
     mobile: { type: String, required: true },
-    occasion: { type: String, required: true },
+    occasion: { type: String, required: false },
     dob: { type: String, required: true },
     amount: { type: Number, required: true },
     razorpayOrderId: String,
