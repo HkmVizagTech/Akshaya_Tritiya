@@ -99,6 +99,10 @@ const settingsSchema = new mongoose.Schema({
       type: Number,
       default: 1000
     },
+    currentReceiptNumber: {
+      type: Number,
+      default: 1000
+    },
     includeOrgLogo: {
       type: Boolean,
       default: true

@@ -32,6 +32,7 @@ app.use(cookieParser());
 app.use("/api/payment", paymentRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
+app.use("/public", express.static("public"));
 
 const server = async () => {
   try {

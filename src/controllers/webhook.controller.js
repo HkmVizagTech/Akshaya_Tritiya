@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const { donationModle } = require("../models/donation.model");
-
+const { generateReceipt } = require("../services/receipt.service");
+const { sendReceiptWhatsapp } = require("../services/whatsapp.service");
 const webHookControler = {
   webhook: async (req, res) => {
     try {
@@ -38,22 +39,55 @@ const webHookControler = {
       console.log("Webhook Event:", event.event);
 
       switch (event.event) {
-        case "payment.captured": {
-          const payment = event.payload.payment.entity;
+        // case "payment.captured": {
+        //   const payment = event.payload.payment.entity;
 
-          await donationModle.findOneAndUpdate(
-            {
-              razorpayOrderId: payment.order_id,
-              status: { $ne: "paid" },
-            },
-            {
-              status: "paid",
-              razorpayPaymentId: payment.id,
-            },
-          );
+        //   await donationModle.findOneAndUpdate(
+        //     {
+        //       razorpayOrderId: payment.order_id,
+        //       status: { $ne: "paid" },
+        //     },
+        //     {
+        //       status: "paid",
+        //       razorpayPaymentId: payment.id,
+        //     },
+        //   );
 
-          break;
-        }
+        //   break;
+        // }
+
+    case "payment.captured": {
+
+  const payment = event.payload.payment.entity;
+
+  const donation = await donationModle.findOneAndUpdate(
+    {
+      razorpayOrderId: payment.order_id,
+      status: { $ne: "paid" }
+    },
+    {
+      status: "paid",
+      razorpayPaymentId: payment.id
+    },
+    { new: true }
+  );
+
+  if (!donation) break;
+
+  if (donation.certificate === true && donation.amount >= 1) {
+
+    const filePath = await generateReceipt(donation);
+
+    const phone = donation.mobile.startsWith("91")
+      ? donation.mobile
+      : `91${donation.mobile}`;
+
+    await sendReceiptWhatsapp(phone, filePath, donation.name, donation.amount);
+
+  }
+
+  break;
+}
 
         case "subscription.activated": {
           const subscription = event.payload.subscription.entity;

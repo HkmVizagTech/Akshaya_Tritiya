@@ -261,6 +261,8 @@ const adminController = {
         mahaprasadam: txn.mahaprasadam,
         prasadamAddressOption: txn.prasadamAddressOption,
         prasadamAddress: txn.prasadamAddress,
+        receiptNumber: txn.receiptNumber,
+        receiptGeneratedAt: txn.receiptGeneratedAt,
         subscriptionId: txn.subscriptionId
       }));
 

@@ -22,6 +22,9 @@ const donationSchema = new mongoose.Schema(
     prasadamAddressOption: { type: String, enum: ['same', 'different'], default: 'same' },
     prasadamAddress: String,
 
+    receiptNumber: { type: Number },
+    receiptGeneratedAt: { type: Date },
+
     subscriptionId: String,
     isRecurring: {
       type: Boolean,

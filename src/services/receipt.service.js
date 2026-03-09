@@ -1,0 +1,112 @@
+const puppeteer = require("puppeteer");
+const ejs = require("ejs");
+const fs = require("fs");
+const path = require("path");
+const { settingsModel } = require("../models/settings.model");
+const { donationModle } = require("../models/donation.model");
+
+const generateReceipt = async (donation) => {
+  // Get settings to fetch current receipt number
+  let settings = await settingsModel.findOne();
+  
+  // If no settings exist, create default
+  if (!settings) {
+    settings = await settingsModel.create({
+      receiptSettings: {
+        startNumber: 5000,
+        currentReceiptNumber: 5000
+      }
+    });
+  }
+
+  // Get and increment receipt number
+  const receiptNumber = settings.receiptSettings.currentReceiptNumber || settings.receiptSettings.startNumber;
+  
+  // Update current receipt number for next time
+  await settingsModel.findByIdAndUpdate(settings._id, {
+    $set: { 'receiptSettings.currentReceiptNumber': receiptNumber + 1 }
+  });
+
+  // Update donation with receipt number
+  await donationModle.findByIdAndUpdate(donation._id, {
+    receiptNumber: receiptNumber,
+    receiptGeneratedAt: new Date()
+  });
+
+  const templatePath = path.join(__dirname, "../templates/receipt.ejs");
+
+  // Format receipt number: HKMI|2024|D/VSP|15740 (last 5 digits dynamic)
+  const formattedReceiptNumber = `HKMI|${new Date().getFullYear()}|D/VSP|${String(receiptNumber).padStart(5, '0')}`;
+  const receiptDate = new Date().toLocaleDateString("en-GB");
+
+  const address = `${donation.address}, ${donation.city}, ${donation.state} - ${donation.pincode}`;
+
+
+const logoBase64 = fs.readFileSync(
+  path.join(__dirname, "../public/hkmi-logo.jpg"),
+  "base64"
+);
+
+const stampBase64 = fs.readFileSync(
+  path.join(__dirname, "../public/hkmi-stamp-removebg-preview.png"),
+  "base64"
+);
+  const html = await ejs.renderFile(templatePath, {
+
+  receiptNumber: formattedReceiptNumber,
+  receiptDate,
+
+  donorName: donation.name,
+  address,
+
+  patronId: "",
+  sevakName: "",
+
+  mobile: donation.mobile,
+  certificate: donation.certificate ? "YES" : "NO",
+
+  email: donation.email,
+  pan: donation.panNumber || "",
+
+  amount: donation.amount,
+  amountWords: "ONE THOUSAND SEVEN HUNDRED ONLY",
+
+  paymentRef: donation.razorpayPaymentId,
+  paymentDate: receiptDate,
+
+  logoBase64,
+  stampBase64
+
+});
+  const browser = await puppeteer.launch({
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--allow-file-access-from-files",
+    ],
+  });
+
+  const page = await browser.newPage();
+
+  await page.setContent(html, { waitUntil: "networkidle0" });
+
+  const receiptsDir = path.join(__dirname, "../../receipts");
+
+  if (!fs.existsSync(receiptsDir)) {
+    fs.mkdirSync(receiptsDir);
+  }
+
+  const filePath = path.join(receiptsDir, `${donation._id}.pdf`);
+
+  await page.pdf({
+    path: filePath,
+    format: "A4",
+    printBackground: true,
+  });
+
+  await browser.close();
+
+  return filePath;
+};
+
+module.exports = { generateReceipt };
