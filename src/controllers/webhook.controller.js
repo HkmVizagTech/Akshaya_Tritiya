@@ -110,29 +110,42 @@ const webHookControler = {
   if (!donation) {
     console.log("No donation found or already processed. Checking if receipt already sent...");
     
-    // Check if this donation exists and already has a receipt
-    if (existingDonation && existingDonation.status === "paid") {
-      console.log("Donation already processed (status: paid). Checking receipt...");
+    // Use the existingDonation we fetched earlier
+    if (existingDonation) {
+      console.log("Using existing donation data for receipt generation");
+      console.log("Donation was already updated to:", recheckDonation ? recheckDonation.status : "UNKNOWN");
       
-      if (existingDonation.certificate === true && existingDonation.amount >= 1 && !existingDonation.receiptNumber) {
-        console.log("Receipt not yet generated for this paid donation. Generating now...");
+      // Check if receipt needs to be generated
+      if (existingDonation.certificate === true && existingDonation.amount >= 1) {
+        console.log("Donation qualifies for receipt. Checking if already generated...");
         
-        try {
-          const filePath = await generateReceipt(existingDonation);
-          console.log("Receipt generated successfully at:", filePath);
+        // Recheck to get latest data including receiptNumber
+        const latestDonation = await donationModle.findById(existingDonation._id);
+        
+        if (latestDonation && !latestDonation.receiptNumber) {
+          console.log("Receipt not yet generated. Generating now...");
+          
+          try {
+            const filePath = await generateReceipt(latestDonation);
+            console.log("Receipt generated successfully at:", filePath);
 
-          const phone = existingDonation.mobile.startsWith("91")
-            ? existingDonation.mobile
-            : `91${existingDonation.mobile}`;
+            const phone = latestDonation.mobile.startsWith("91")
+              ? latestDonation.mobile
+              : `91${latestDonation.mobile}`;
 
-          console.log("Sending WhatsApp to:", phone);
-          await sendReceiptWhatsapp(phone, filePath, existingDonation.name, existingDonation.amount);
-          console.log("WhatsApp sent successfully!");
-        } catch (error) {
-          console.error("Error in receipt generation/WhatsApp:", error);
+            console.log("Sending WhatsApp to:", phone);
+            await sendReceiptWhatsapp(phone, filePath, latestDonation.name, latestDonation.amount);
+            console.log("WhatsApp sent successfully!");
+          } catch (error) {
+            console.error("Error in receipt generation/WhatsApp:", error);
+          }
+        } else if (latestDonation && latestDonation.receiptNumber) {
+          console.log("Receipt already generated. Receipt number:", latestDonation.receiptNumber);
+        } else {
+          console.log("Could not find donation for receipt generation");
         }
       } else {
-        console.log("Receipt already generated or not eligible. receiptNumber:", existingDonation.receiptNumber);
+        console.log("Donation does not qualify for receipt. Certificate:", existingDonation.certificate, "Amount:", existingDonation.amount);
       }
     }
     break;
