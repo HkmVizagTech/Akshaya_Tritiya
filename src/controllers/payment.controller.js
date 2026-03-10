@@ -1,6 +1,8 @@
 const { razorpay } = require("../config/razorpay");
 const {donationModle} = require("../models/donation.model");
-const {planModel} = require("../models/plan.model")
+const {planModel} = require("../models/plan.model");
+const path = require("path");
+const fs = require("fs");
 require("dotenv").config()
 const paymentController = {
   createOrder : async(req,res)=>{
@@ -176,6 +178,44 @@ console.log("Using PLAN ID:", planId);
     error: error.error?.description || error.message
   });
 }
+},
+
+downloadReceipt: async (req, res) => {
+  try {
+    const { donationId } = req.params;
+    
+    // Find the donation
+    const donation = await donationModle.findById(donationId);
+    
+    if (!donation) {
+      return res.status(404).json({ message: "Donation not found" });
+    }
+    
+    // Check if receipt exists
+    if (!donation.receiptNumber) {
+      return res.status(404).json({ message: "Receipt not yet generated. Please wait a moment and try again." });
+    }
+    
+    // Path to the PDF file
+    const filePath = path.join(__dirname, "../../receipts", `${donationId}.pdf`);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "Receipt file not found" });
+    }
+    
+    // Send the file
+    res.download(filePath, `Receipt_${donation.receiptNumber}.pdf`, (err) => {
+      if (err) {
+        console.error("Error downloading receipt:", err);
+        res.status(500).json({ message: "Error downloading receipt" });
+      }
+    });
+    
+  } catch (error) {
+    console.error("Download receipt error:", error);
+    res.status(500).json({ message: "Failed to download receipt" });
+  }
 }
 
 
