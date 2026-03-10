@@ -35,7 +35,11 @@ const sendReceiptWhatsapp = async (phone, filePath, donorName, amount) => {
 
   form.append(
     "header_attachment",
-    fs.createReadStream(filePath)
+    fs.createReadStream(filePath),
+    {
+      filename: "Donation_Receipt.pdf",
+      contentType: "application/pdf"
+    }
   );
 
   const response = await axios.post(
