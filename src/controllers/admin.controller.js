@@ -690,7 +690,8 @@ const adminController = {
         minimumDonationAmount,
         currency,
         notifications,
-        emailTemplate
+        emailTemplate,
+        receiptSettings
       } = req.body;
 
       let settings = await settingsModel.findOne();
@@ -707,6 +708,7 @@ const adminController = {
       if (currency) settings.currency = currency;
       if (notifications) settings.notifications = { ...settings.notifications, ...notifications };
       if (emailTemplate) settings.emailTemplate = { ...settings.emailTemplate, ...emailTemplate };
+      if (receiptSettings) settings.receiptSettings = { ...settings.receiptSettings, ...receiptSettings };
 
       await settings.save();
 
