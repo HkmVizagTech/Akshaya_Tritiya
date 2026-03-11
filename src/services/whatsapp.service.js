@@ -13,40 +13,30 @@ const sendReceiptWhatsapp = async (phone, filePath, donorName, amount) => {
   form.append("template_name", "thank_you_page");
   form.append("template_language", "en_GB");
 
-
   form.append(
-    "components",
-    JSON.stringify([
-      {
-        type: "body",
-        parameters: [
-          {
-            type: "text",
-            text: donorName
-          },
-          {
-            type: "text",
-            text: String(amount)
-          }
-        ]
-      }
-    ])
+    "components[]",
+    JSON.stringify({
+      type: "body",
+      parameters: [
+        { type: "text", text: donorName },
+        { type: "text", text: String(amount) }
+      ]
+    })
   );
 
   form.append(
     "header_attachment",
-    fs.createReadStream(filePath),
-      {
-        filename: "Annadhan_Certificate.pdf",
-        contentType: "application/pdf"
-      }
+    fs.createReadStream(filePath)
   );
 
   const response = await axios.post(
     "https://wapi.flaxxa.com/api/v1/sendtemplatemessage_withattachment",
     form,
     {
-      headers: form.getHeaders()
+      headers: {
+        ...form.getHeaders(),
+        Accept: "application/json"
+      }
     }
   );
 
