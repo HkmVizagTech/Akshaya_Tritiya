@@ -10,11 +10,9 @@ const generateReceipt = async (donation) => {
   try {
     console.log("Receipt generation started for donation:", donation._id);
     
-    // Get settings to fetch current receipt number
     let settings = await settingsModel.findOne();
     console.log("Settings fetched, current receipt number:", settings?.receiptSettings?.currentReceiptNumber);
     
-    // If no settings exist, create default
     if (!settings) {
       console.log("No settings found, creating default...");
       settings = await settingsModel.create({
@@ -25,15 +23,12 @@ const generateReceipt = async (donation) => {
       });
     }
 
-  // Get and increment receipt number
   const receiptNumber = settings.receiptSettings.currentReceiptNumber || settings.receiptSettings.startNumber;
   
-  // Update current receipt number for next time
   await settingsModel.findByIdAndUpdate(settings._id, {
     $set: { 'receiptSettings.currentReceiptNumber': receiptNumber + 1 }
   });
 
-  // Update donation with receipt number
   await donationModle.findByIdAndUpdate(donation._id, {
     receiptNumber: receiptNumber,
     receiptGeneratedAt: new Date()
@@ -41,7 +36,6 @@ const generateReceipt = async (donation) => {
 
   const templatePath = path.join(__dirname, "../templates/receipt.ejs");
 
-  // Format receipt number: HKMI|2024|D/VSP|15740 (last 5 digits dynamic)
   const formattedReceiptNumber = `HKMI|${new Date().getFullYear()}|D/VSP|${String(receiptNumber).padStart(5, '0')}`;
   const receiptDate = new Date().toLocaleDateString("en-GB");
 
@@ -57,7 +51,6 @@ const generateReceipt = async (donation) => {
     "base64"
   );
 
-  // Convert amount to words dynamically
   const amountWords = numberToWords.toWords(donation.amount).toUpperCase() + " RUPEES ONLY";
 
   const html = await ejs.renderFile(templatePath, {
@@ -79,7 +72,6 @@ const generateReceipt = async (donation) => {
     stampBase64
   });
 
-  // Launch puppeteer with args suitable for cloud environments
   const browser = await puppeteer.launch({
     headless: true,
     args: [

@@ -3,6 +3,7 @@ const {donationModle} = require("../models/donation.model");
 const {planModel} = require("../models/plan.model");
 const path = require("path");
 const fs = require("fs");
+const { generateReceipt } = require("../services/receipt.service");
 require("dotenv").config()
 const paymentController = {
   createOrder : async(req,res)=>{
@@ -167,12 +168,6 @@ console.log("Using PLAN ID:", planId);
     });
 
   } catch (error) {
-  // console.log("====== SUBSCRIPTION ERROR START ======");
-  // console.log("Status Code:", error.statusCode);
-  // console.log("Error Description:", error.error?.description);
-  // console.log("Full Error Object:", error);
-  // console.log("====== SUBSCRIPTION ERROR END ======");
-
   return res.status(500).json({
     message: "Subscription creation failed",
     error: error.error?.description || error.message
@@ -184,7 +179,7 @@ downloadReceipt: async (req, res) => {
   try {
     const { donationId } = req.params;
     
-    console.log("=== DOWNLOAD RECEIPT REQUEST ===");
+    console.log("=== GET RECEIPT DATA REQUEST ===");
     console.log("Donation ID:", donationId);
     
     const donation = await donationModle.findById(donationId);
@@ -199,38 +194,40 @@ downloadReceipt: async (req, res) => {
       name: donation.name,
       amount: donation.amount,
       status: donation.status,
-      receiptNumber: donation.receiptNumber,
-      receiptGeneratedAt: donation.receiptGeneratedAt
+      receiptNumber: donation.receiptNumber
     });
   
     if (!donation.receiptNumber) {
-      console.log("ERROR: Receipt number not set - receipt not yet generated");
-      return res.status(404).json({ message: "Receipt not yet generated. Please wait a moment and try again." });
+      console.log("ERROR: Receipt number not set - not eligible for receipt");
+      return res.status(404).json({ message: "This donation does not have a receipt number assigned." });
     }
     
-    const filePath = path.join(__dirname, "../../receipts", `${donationId}.pdf`);
-    console.log("Looking for PDF at:", filePath);
+    const receiptData = {
+      receiptNumber: donation.receiptNumber,
+      name: donation.name,
+      email: donation.email,
+      mobile: donation.mobile,
+      amount: donation.amount,
+      address: donation.address,
+      city: donation.city,
+      state: donation.state,
+      pincode: donation.pincode,
+      panNumber: donation.panNumber,
+      certificate: donation.certificate,
+      razorpayPaymentId: donation.razorpayPaymentId,
+      receiptGeneratedAt: donation.receiptGeneratedAt,
+      createdAt: donation.createdAt
+    };
     
-    if (!fs.existsSync(filePath)) {
-      console.log("ERROR: PDF file does not exist at path");
-      return res.status(404).json({ message: "Receipt file not found" });
-    }
-    
-    console.log("SUCCESS: Sending PDF file");
-    res.download(filePath, `Receipt_${donation.receiptNumber}.pdf`, (err) => {
-      if (err) {
-        console.error("Error downloading receipt:", err);
-        if (!res.headersSent) {
-          res.status(500).json({ message: "Error downloading receipt" });
-        }
-      } else {
-        console.log("Download completed successfully");
-      }
+    console.log("SUCCESS: Sending receipt data");
+    return res.status(200).json({
+      success: true,
+      data: receiptData
     });
     
   } catch (error) {
-    console.error("Download receipt error:", error);
-    res.status(500).json({ message: "Failed to download receipt" });
+    console.error("Get receipt data error:", error);
+    res.status(500).json({ message: "Failed to fetch receipt data" });
   }
 }
 

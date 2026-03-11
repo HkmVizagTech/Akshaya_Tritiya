@@ -39,33 +39,10 @@ const webHookControler = {
       console.log("Webhook Event:", event.event);
 
       switch (event.event) {
-        // case "payment.captured": {
-        //   const payment = event.payload.payment.entity;
-
-        //   await donationModle.findOneAndUpdate(
-        //     {
-        //       razorpayOrderId: payment.order_id,
-        //       status: { $ne: "paid" },
-        //     },
-        //     {
-        //       status: "paid",
-        //       razorpayPaymentId: payment.id,
-        //     },
-        //   );
-
-        //   break;
-        // }
 
     case "payment.captured": {
 
   const payment = event.payload.payment.entity;
-
-
-  // console.log("=== PAYMENT CAPTURED WEBHOOK ===");
-  // console.log("Payment ID:", payment.id);
-  // console.log("Order ID from Razorpay:", payment.order_id);
-  // console.log("Payment Amount:", payment.amount / 100);
-  // console.log("Payment Status:", payment.status);
 
   const existingDonation = await donationModle.findOne({ razorpayOrderId: payment.order_id });
   console.log("Searching DB for razorpayOrderId:", payment.order_id);
