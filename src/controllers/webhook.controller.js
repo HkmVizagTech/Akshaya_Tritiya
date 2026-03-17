@@ -88,7 +88,7 @@ const webHookControler = {
             if (existingDonation) {
               console.log("Using existing donation data for receipt generation");
               
-              if (existingDonation.amount >= 1) {
+              if (existingDonation.amount >= 1000) {
                 console.log("Donation qualifies for receipt (amount >= 1). Checking if already generated...");
                 
                 const latestDonation = await donationModle.findById(existingDonation._id);
@@ -120,14 +120,14 @@ const webHookControler = {
                   console.log("Could not find donation for receipt generation");
                 }
               } else {
-                console.log("Donation does not qualify for receipt. Amount:", existingDonation.amount, "(must be >= 1)");
+                console.log("Donation does not qualify for receipt. Amount:", existingDonation.amount, "(must be >= 1000)");
               }
             }
             break;
           }
 
-          if (donation.amount >= 1) {
-            console.log("Conditions met! Starting receipt generation (amount >= 1)...");
+          if (donation.amount >= 1000) {
+            console.log("Conditions met! Starting receipt generation (amount >= 1000)...");
             try {
               console.log("Starting receipt generation for donation:", donation._id);
               const filePath = await generateReceipt(donation);
@@ -149,7 +149,7 @@ const webHookControler = {
             }
           } else {
             console.log("Conditions NOT met for receipt generation");
-            console.log("Amount:", donation.amount, "(must be >= 1)");
+            console.log("Amount:", donation.amount, "(must be >= 1000)");
           }
 
           break;
@@ -178,7 +178,7 @@ const webHookControler = {
             { new: true }
           );
 
-          if (donation && donation.amount >= 1) {
+          if (donation && donation.amount >= 1000) {
             try {
               const filePath = await generateReceipt(donation);
               console.log("Receipt generated successfully at:", filePath);
