@@ -41,7 +41,7 @@ const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, paymentTy
     "header_attachment",
     fs.createReadStream(filePath),
       {
-        filename: "Annadhan_Certificate.pdf",
+        filename: "Donation_Acknowledgment_Receipt.pdf",
         contentType: "application/pdf"
       }
   );
