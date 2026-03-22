@@ -3,10 +3,15 @@ const express = require("express");
 const { adminController } = require("../controllers/admin.controller");
 const { adminAuth } = require("../middlewares/admin.auth.middleware");
 const { adminSubscriptionController } = require("../controllers/admin.subscription.controller");
+const campaignController = require("../controllers/campaign.controller.js");
 const adminRouter = express.Router();
 
-// UTM Analytics
+
 adminRouter.get("/utm-stats", adminController.getUtmStats);
+
+
+adminRouter.post("/create-campaign", campaignController.createCampaign);
+adminRouter.get("/campaigns", campaignController.listCampaigns);
 
 adminRouter.use(adminAuth);
 

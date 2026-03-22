@@ -9,7 +9,10 @@ const adminController = {
         { $match: { status: "paid" } },
         {
           $group: {
-            _id: "$utm.source",
+            _id: {
+              campaign: { $ifNull: ["$utm.campaign", "direct"] },
+              source: { $ifNull: ["$utm.source", "direct"] }
+            },
             totalAmount: { $sum: "$amount" },
             count: { $sum: 1 }
           }
