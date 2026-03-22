@@ -17,7 +17,7 @@ exports.createCampaign = async (req, res) => {
     if (exists) {
       return res.status(409).json({ message: 'Campaign with this name already exists.' });
     }
-    const baseUrl = process.env.CAMPAIGN_BASE_URL || 'https://subhojanam.com/donate';
+    const baseUrl = process.env.CAMPAIGN_BASE_URL || 'https://annadan.harekrishnavizag.org';
     const generatedUrl = `${baseUrl}?utm_source=${encodeURIComponent(source)}&utm_medium=${encodeURIComponent(medium||'')}&utm_campaign=${encodeURIComponent(normalizedCampaign)}${content ? `&utm_content=${encodeURIComponent(content)}` : ''}${term ? `&utm_term=${encodeURIComponent(term)}` : ''}`;
     const campaignDoc = new Campaign({
       name,
