@@ -58,6 +58,10 @@ const donationSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    whatsappPendingReminderSent: {
+      type: Boolean,
+      default: false,
+    },
     reviewAfter: Date,
     lastPaymentDate: Date,
   },
