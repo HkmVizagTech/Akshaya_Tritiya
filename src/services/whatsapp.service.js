@@ -5,29 +5,29 @@ const fs = require("fs");
 require("dotenv").config();
 
 const sendPendingWhatsapp = async (phone, donorName, amount) => {
-  const form = new FormData();
-
-  form.append("token", process.env.FLAXXA_TOKEN);
-  form.append("phone", phone);
-  form.append("template_name", "subhojanam_ppending");
-  form.append("template_language", "en");
-  form.append(
-    "components",
-    JSON.stringify([
-      {
-        type: "body",
-        parameters: [
-          { type: "text", text: donorName },
-          { type: "text", text: String(amount) }
-        ]
-      }
-    ])
-  );
-
   const response = await axios.post(
     "https://wapi.flaxxa.com/api/v1/sendtemplatemessage",
-    form,
-    { headers: form.getHeaders() }
+    JSON.stringify({
+      token: process.env.FLAXXA_TOKEN,
+      phone: phone,
+      template_name: "subhojanam_ppending",
+      template_language: "en",
+      components: [
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: String(donorName) },
+            { type: "text", text: String(amount) }
+          ]
+        }
+      ]
+    }),
+    { 
+      headers: { 
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      } 
+    }
   );
 
   return response.data;
