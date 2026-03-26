@@ -233,7 +233,9 @@ const adminController = {
         search = "",
         status = "all",
         startDate,
-        endDate
+        endDate,
+        mahaprasadam,
+        certificate
       } = req.query;
 
       const query = {};
@@ -255,6 +257,18 @@ const adminController = {
         query.createdAt = {};
         if (startDate) query.createdAt.$gte = new Date(startDate);
         if (endDate) query.createdAt.$lte = new Date(endDate);
+      }
+
+      
+      if (typeof mahaprasadam !== 'undefined') {
+        if (mahaprasadam === 'true') query.mahaprasadam = true;
+        if (mahaprasadam === 'false') query.mahaprasadam = false;
+      }
+
+     
+      if (typeof certificate !== 'undefined') {
+        if (certificate === 'true') query.certificate = true;
+        if (certificate === 'false') query.certificate = false;
       }
 
       const skip = (parseInt(page) - 1) * parseInt(limit);
