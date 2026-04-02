@@ -785,22 +785,42 @@ const adminController = {
         .sort({ createdAt: -1 })
         .select("name email mobile amount createdAt status occasion razorpayPaymentId");
 
-      const csvData = transactions.map(txn => ({
-        "Transaction ID": txn.razorpayPaymentId || `TXN${txn._id.toString().slice(-6).toUpperCase()}`,
-        "Name": txn.name,
-        "Email": txn.email,
-        "Mobile": txn.mobile,
-        "Amount": txn.amount,
-        "Date": txn.createdAt.toISOString(),
-        "Status": txn.status,
-        "Occasion": txn.occasion
-      }));
+      
+      const headers = [
+        "Transaction ID",
+        "Name",
+        "Email",
+        "Mobile",
+        "Amount",
+        "Date",
+        "Status",
+        "Occasion"
+      ];
+      const rows = transactions.map(txn => [
+        txn.razorpayPaymentId || `TXN${txn._id.toString().slice(-6).toUpperCase()}`,
+        txn.name,
+        txn.email,
+        txn.mobile,
+        txn.amount,
+        txn.createdAt.toISOString(),
+        txn.status,
+        txn.occasion || ''
+      ]);
 
-      res.status(200).json({
-        success: true,
-        data: csvData,
-        count: csvData.length
-      });
+      
+      const csv = [
+        headers.join(','),
+        ...rows.map(row => row.map(val => {
+          if (typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) {
+            return '"' + val.replace(/"/g, '""') + '"';
+          }
+          return val;
+        }).join(','))
+      ].join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="transactions.csv"');
+      res.status(200).send(csv);
     } catch (error) {
       console.error("Export transactions error:", error);
       res.status(500).json({ success: false, message: "Failed to export transactions" });
