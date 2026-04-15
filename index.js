@@ -13,12 +13,37 @@ const { sendPendingWhatsapp } = require("./src/services/whatsapp.service");
 
 const app = express();
 
-app.use(cors({
-  origin: ["https://annadan.harekrishnavizag.org"],
-  //origin: ["http://localhost:5173"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}));
+const defaultAllowedOrigins = [
+  "https://akshaya-donation-hub.vercel.app",
+  "https://annadan.harekrishnavizag.org",
+  "http://localhost:5173",
+];
+
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : defaultAllowedOrigins;
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  }),
+);
+
+app.get("/health", (req, res) => {
+  res.status(200).json({ ok: true });
+});
 
 app.post(
   "/api/webhook/razorpay",

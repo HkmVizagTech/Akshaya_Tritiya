@@ -9,7 +9,6 @@ const webHookControler = {
       
       const signature = req.headers["x-razorpay-signature"];
       const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-      console.log("ENV RAZORPAY_WEBHOOK_SECRET:", process.env.RAZORPAY_WEBHOOK_SECRET);
 
       if (!webhookSecret) {
         return res.status(500).send("Webhook secret not configured");

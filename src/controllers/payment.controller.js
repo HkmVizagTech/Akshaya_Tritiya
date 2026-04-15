@@ -8,7 +8,7 @@ require("dotenv").config()
 const paymentController = {
   createOrder : async(req,res)=>{
     try {
-        const {  name, email, mobile, occasion, sevaDate, dob, amount, certificate, panNumber, address, city, state, pincode, mahaprasadam, prasadamAddressOption, prasadamAddress } = req.body;
+        const {  name, email, mobile, Akshaya_tritiya, type, occasion, sevaDate, dob, amount, certificate, panNumber, address, city, state, pincode, mahaprasadam, prasadamAddressOption, prasadamAddress } = req.body;
 
       if (!amount || amount < 1) {
         return res.status(400).send("Invalid amount");
@@ -28,6 +28,8 @@ const paymentController = {
       name,
       email,
       mobile,
+      Akshaya_tritiya,
+      type,
       occasion,
       sevaDate,
       dob,
@@ -64,6 +66,8 @@ const paymentController = {
       name,
       email,
       mobile,
+      Akshaya_tritiya,
+      type,
       occasion,
       sevaDate,
       dob,
@@ -143,6 +147,8 @@ console.log("Using PLAN ID:", planId);
       name,
       email,
       mobile,
+      Akshaya_tritiya,
+      type,
       occasion,
       sevaDate,
       dob,
