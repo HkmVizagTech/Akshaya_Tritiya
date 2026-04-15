@@ -8,10 +8,11 @@ require("dotenv").config()
 const paymentController = {
   createOrder : async(req,res)=>{
     try {
-        const {  name, email, mobile, Akshaya_tritiya, type, occasion, sevaDate, dob, amount, certificate, panNumber, address, city, state, pincode, mahaprasadam, prasadamAddressOption, prasadamAddress } = req.body;
+        const {  name, email, mobile, Akshaya_tritiya, type, sevaName, occasion, sevaDate, dob, amount, certificate, panNumber, address, city, state, pincode, mahaprasadam, prasadamAddressOption, prasadamAddress } = req.body;
+        const resolvedSevaName = (type || sevaName || "").trim();
 
-      if (!amount || amount < 1) {
-        return res.status(400).send("Invalid amount");
+      if (!name || !mobile || !resolvedSevaName || !amount || amount < 1) {
+        return res.status(400).json({ message: "name, mobile, sevaName, and a valid amount are required" });
       }
 
 
@@ -29,7 +30,8 @@ const paymentController = {
       email,
       mobile,
       Akshaya_tritiya,
-      type,
+      type: resolvedSevaName,
+      sevaName: resolvedSevaName,
       occasion,
       sevaDate,
       dob,
@@ -68,6 +70,7 @@ const paymentController = {
       mobile,
       Akshaya_tritiya,
       type,
+      sevaName,
       occasion,
       sevaDate,
       dob,
@@ -83,8 +86,10 @@ const paymentController = {
       prasadamAddress
     } = req.body;
 
-    if (!amount || amount < 1) {
-      return res.status(400).send("Invalid amount");
+    const resolvedSevaName = (type || sevaName || "").trim();
+
+    if (!name || !mobile || !resolvedSevaName || !amount || amount < 1) {
+      return res.status(400).json({ message: "name, mobile, sevaName, and a valid amount are required" });
     }
 
     let planId;
@@ -148,7 +153,8 @@ console.log("Using PLAN ID:", planId);
       email,
       mobile,
       Akshaya_tritiya,
-      type,
+      type: resolvedSevaName,
+      sevaName: resolvedSevaName,
       occasion,
       sevaDate,
       dob,

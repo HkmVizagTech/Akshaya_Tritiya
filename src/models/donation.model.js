@@ -7,6 +7,7 @@ const donationSchema = new mongoose.Schema(
     mobile: { type: String, required: true },
     Akshaya_tritiya: { type: Boolean, default: false },
     type: { type: String, required: false },
+    sevaName: { type: String, required: false },
   occasion: { type: String, required: false },
   sevaDate: { type: String, required: false },
 

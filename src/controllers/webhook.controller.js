@@ -123,7 +123,14 @@ const webHookControler = {
                     if (latestDonation.subscriptionId || latestDonation.isRecurring) {
                       paymentType = "subscription";
                     }
-                    await whatsappService.sendReceiptWhatsapp(phone, filePath, latestDonation.name, latestDonation.amount, paymentType); 
+                    await whatsappService.sendReceiptWhatsapp(
+                      phone,
+                      filePath,
+                      latestDonation.name,
+                      latestDonation.amount,
+                      latestDonation.type || latestDonation.sevaName,
+                      paymentType,
+                    ); 
                     console.log("WhatsApp sent successfully!");
                   } catch (error) {
                     console.error("Error in receipt generation/WhatsApp:", error);
@@ -174,7 +181,14 @@ const webHookControler = {
               if (donation.subscriptionId || donation.isRecurring) {
                 paymentType = "subscription";
               }
-              await whatsappService.sendReceiptWhatsapp(phone, filePath, donation.name, donation.amount, paymentType);
+              await whatsappService.sendReceiptWhatsapp(
+                phone,
+                filePath,
+                donation.name,
+                donation.amount,
+                donation.type || donation.sevaName,
+                paymentType,
+              );
               console.log("WhatsApp sent successfully!");
             } catch (error) {
               console.error("Error in receipt generation/WhatsApp:", error);
@@ -216,7 +230,7 @@ const webHookControler = {
 
           if (donation && donation.amount >= 1) {
             try {
-              const filePath = await generateReceipt(donation);
+              const filePath = await receiptService.generateReceipt(donation);
               console.log("Receipt generated successfully at:", filePath);
 
               const phone = donation.mobile.startsWith("91")
@@ -224,7 +238,14 @@ const webHookControler = {
                 : `91${donation.mobile}`;
 
               console.log("Sending WhatsApp to:", phone);
-              await sendReceiptWhatsapp(phone, filePath, donation.name, donation.amount, "subscription");
+              await whatsappService.sendReceiptWhatsapp(
+                phone,
+                filePath,
+                donation.name,
+                donation.amount,
+                donation.type || donation.sevaName,
+                "subscription",
+              );
               console.log("WhatsApp sent successfully!");
             } catch (error) {
               console.error("Error in subscription receipt/WhatsApp:", error);

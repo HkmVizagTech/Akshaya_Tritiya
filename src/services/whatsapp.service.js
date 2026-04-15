@@ -4,6 +4,13 @@ const FormData = require("form-data");
 const fs = require("fs");
 require("dotenv").config();
 
+const normalizeSevaName = (rawSevaName) => {
+  const seva = String(rawSevaName || "").trim();
+  if (!seva) return "Annadana Seva";
+  if (/^Feed\s+\d+/i.test(seva)) return "Annadana Seva";
+  return seva;
+};
+
 const sendPendingWhatsapp = async (phone, donorName, amount) => {
   const response = await axios.post(
     "https://wapi.flaxxa.com/api/v1/sendtemplatemessage",
@@ -43,17 +50,19 @@ const sendPendingWhatsapp = async (phone, donorName, amount) => {
 
 
 
-const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, paymentType = "normal") => {
+const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, sevaName, paymentType = "normal") => {
 
   const form = new FormData();
 
   form.append("token", process.env.FLAXXA_TOKEN);
   form.append("phone", phone);
 
-  let templateName = "annadana_acknowledgement_receipt";
+  let templateName = "common_donation_success_reciept";
   if (paymentType === "subscription") {
-    templateName = "andseva_monthly_success_reciept";
+    templateName = "common_donation_success_reciept";
   }
+
+  const finalSevaName = normalizeSevaName(sevaName);
   form.append("template_name", templateName);
   form.append("template_language", "en");
 
@@ -71,6 +80,10 @@ const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, paymentTy
           {
             type: "text",
             text: String(amount)
+          },
+          {
+            type: "text",
+            text: finalSevaName
           }
         ]
       }
