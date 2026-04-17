@@ -33,6 +33,9 @@ const donationSchema = new mongoose.Schema(
   externalApiSentAt: { type: Date },
   receiptGenerationAttempts: { type: Number, default: 0 },
   receiptGenerationLastError: { type: String },
+  whatsappSentAt: { type: Date },
+  whatsappResponse: { type: Object },
+  whatsappLastError: { type: String },
 
     subscriptionId: String,
     isRecurring: {

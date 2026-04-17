@@ -123,7 +123,7 @@ const webHookControler = {
                     if (latestDonation.subscriptionId || latestDonation.isRecurring) {
                       paymentType = "subscription";
                     }
-                    await whatsappService.sendReceiptWhatsapp(
+                    const whatsappResponse = await whatsappService.sendReceiptWhatsapp(
                       phone,
                       filePath,
                       latestDonation.name,
@@ -131,12 +131,22 @@ const webHookControler = {
                       latestDonation.type || latestDonation.sevaName,
                       paymentType,
                     ); 
+                    await donationModle.findByIdAndUpdate(latestDonation._id, {
+                      $set: {
+                        whatsappSentAt: new Date(),
+                        whatsappResponse,
+                        whatsappLastError: null,
+                      },
+                    });
                     console.log("WhatsApp sent successfully!");
                   } catch (error) {
                     console.error("Error in receipt generation/WhatsApp:", error);
                     await donationModle.findByIdAndUpdate(latestDonation._id, {
                       $inc: { receiptGenerationAttempts: 1 },
-                      $set: { receiptGenerationLastError: String(error.message || error) }
+                      $set: {
+                        receiptGenerationLastError: String(error.message || error),
+                        whatsappLastError: String(error.message || error),
+                      }
                     });
                   }
                 } else if (latestDonation && latestDonation.receiptNumber) {
@@ -181,7 +191,7 @@ const webHookControler = {
               if (donation.subscriptionId || donation.isRecurring) {
                 paymentType = "subscription";
               }
-              await whatsappService.sendReceiptWhatsapp(
+              const whatsappResponse = await whatsappService.sendReceiptWhatsapp(
                 phone,
                 filePath,
                 donation.name,
@@ -189,12 +199,22 @@ const webHookControler = {
                 donation.type || donation.sevaName,
                 paymentType,
               );
+              await donationModle.findByIdAndUpdate(donation._id, {
+                $set: {
+                  whatsappSentAt: new Date(),
+                  whatsappResponse,
+                  whatsappLastError: null,
+                },
+              });
               console.log("WhatsApp sent successfully!");
             } catch (error) {
               console.error("Error in receipt generation/WhatsApp:", error);
               await donationModle.findByIdAndUpdate(donation._id, {
                 $inc: { receiptGenerationAttempts: 1 },
-                $set: { receiptGenerationLastError: String(error.message || error) }
+                $set: {
+                  receiptGenerationLastError: String(error.message || error),
+                  whatsappLastError: String(error.message || error),
+                }
               });
             }
           } else {
@@ -238,7 +258,7 @@ const webHookControler = {
                 : `91${donation.mobile}`;
 
               console.log("Sending WhatsApp to:", phone);
-              await whatsappService.sendReceiptWhatsapp(
+              const whatsappResponse = await whatsappService.sendReceiptWhatsapp(
                 phone,
                 filePath,
                 donation.name,
@@ -246,9 +266,21 @@ const webHookControler = {
                 donation.type || donation.sevaName,
                 "subscription",
               );
+              await donationModle.findByIdAndUpdate(donation._id, {
+                $set: {
+                  whatsappSentAt: new Date(),
+                  whatsappResponse,
+                  whatsappLastError: null,
+                },
+              });
               console.log("WhatsApp sent successfully!");
             } catch (error) {
               console.error("Error in subscription receipt/WhatsApp:", error);
+              await donationModle.findByIdAndUpdate(donation._id, {
+                $set: {
+                  whatsappLastError: String(error.message || error),
+                },
+              });
             }
           }
 
