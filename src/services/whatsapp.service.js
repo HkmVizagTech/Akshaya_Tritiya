@@ -66,6 +66,15 @@ const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, sevaName,
   form.append("template_name", templateName);
   form.append("template_language", "en");
 
+  console.log("WhatsApp template payload:", {
+    phone,
+    templateName,
+    donorName,
+    amount,
+    sevaName: finalSevaName,
+    paymentType,
+  });
+
 
   form.append(
     "components",
@@ -99,15 +108,27 @@ const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, sevaName,
       }
   );
 
-  const response = await axios.post(
-    "https://wapi.flaxxa.com/api/v1/sendtemplatemessage_withattachment",
-    form,
-    {
-      headers: form.getHeaders()
-    }
-  );
+  try {
+    const response = await axios.post(
+      "https://wapi.flaxxa.com/api/v1/sendtemplatemessage_withattachment",
+      form,
+      {
+        headers: form.getHeaders()
+      }
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    console.error("WhatsApp send error details:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      templateName,
+      sevaName: finalSevaName,
+      phone,
+    });
+    throw error;
+  }
 };
 
 module.exports = { sendReceiptWhatsapp, sendPendingWhatsapp };
