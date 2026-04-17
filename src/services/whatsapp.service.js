@@ -51,84 +51,87 @@ const sendPendingWhatsapp = async (phone, donorName, amount) => {
 
 
 const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, sevaName, paymentType = "normal") => {
-
-  const form = new FormData();
-
-  form.append("token", process.env.FLAXXA_TOKEN);
-  form.append("phone", phone);
-
-  let templateName = "common_donation_success_reciept";
-  if (paymentType === "subscription") {
-    templateName = "common_donation_success_reciept";
+  if (!process.env.FLAXXA_TOKEN) {
+    throw new Error("FLAXXA_TOKEN is not configured");
   }
 
   const finalSevaName = normalizeSevaName(sevaName);
-  form.append("template_name", templateName);
-  form.append("template_language", "en");
+  const templateAttempts = [
+    { name: process.env.WHATSAPP_TEMPLATE_PRIMARY || "common_donation_success_reciept", includeSeva: true },
+    {
+      name:
+        process.env.WHATSAPP_TEMPLATE_SUBSCRIPTION ||
+        (paymentType === "subscription" ? "andseva_monthly_success_reciept" : "annadana_acknowledgement_receipt"),
+      includeSeva: false,
+    },
+    { name: process.env.WHATSAPP_TEMPLATE_FALLBACK || "annadana_acknowledgement_receipt", includeSeva: false },
+  ];
 
-  console.log("WhatsApp template payload:", {
-    phone,
-    templateName,
-    donorName,
-    amount,
-    sevaName: finalSevaName,
-    paymentType,
-  });
+  let lastError = null;
 
+  for (const attempt of templateAttempts) {
+    const form = new FormData();
+    form.append("token", process.env.FLAXXA_TOKEN);
+    form.append("phone", phone);
+    form.append("template_name", attempt.name);
+    form.append("template_language", "en");
 
-  form.append(
-    "components",
-    JSON.stringify([
-      {
-        type: "body",
-        parameters: [
-          {
-            type: "text",
-            text: donorName
-          },
-          {
-            type: "text",
-            text: String(amount)
-          },
-          {
-            type: "text",
-            text: finalSevaName
-          }
-        ]
-      }
-    ])
-  );
+    const params = [
+      { type: "text", text: donorName },
+      { type: "text", text: String(amount) },
+    ];
+    if (attempt.includeSeva) {
+      params.push({ type: "text", text: finalSevaName });
+    }
 
-  form.append(
-    "header_attachment",
-    fs.createReadStream(filePath),
-      {
-        filename: "Donation_Acknowledgment_Receipt.pdf",
-        contentType: "application/pdf"
-      }
-  );
-
-  try {
-    const response = await axios.post(
-      "https://wapi.flaxxa.com/api/v1/sendtemplatemessage_withattachment",
-      form,
-      {
-        headers: form.getHeaders()
-      }
+    form.append(
+      "components",
+      JSON.stringify([
+        {
+          type: "body",
+          parameters: params,
+        },
+      ]),
     );
 
-    return response.data;
-  } catch (error) {
-    console.error("WhatsApp send error details:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      templateName,
-      sevaName: finalSevaName,
-      phone,
+    form.append("header_attachment", fs.createReadStream(filePath), {
+      filename: "Donation_Acknowledgment_Receipt.pdf",
+      contentType: "application/pdf",
     });
-    throw error;
+
+    try {
+      console.log("WhatsApp template payload:", {
+        phone,
+        templateName: attempt.name,
+        donorName,
+        amount,
+        sevaName: attempt.includeSeva ? finalSevaName : "(not sent)",
+        paymentType,
+      });
+
+      const response = await axios.post(
+        "https://wapi.flaxxa.com/api/v1/sendtemplatemessage_withattachment",
+        form,
+        {
+          headers: form.getHeaders(),
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      lastError = error;
+      console.error("WhatsApp send attempt failed:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        templateName: attempt.name,
+        includeSeva: attempt.includeSeva,
+        phone,
+      });
+    }
   }
+
+  throw lastError || new Error("All WhatsApp template attempts failed");
 };
 
 module.exports = { sendReceiptWhatsapp, sendPendingWhatsapp };
