@@ -2,12 +2,15 @@ const axios = require('axios');
 require('dotenv').config();
 
 const EXTERNAL_API_URL = process.env.EXTERNAL_DONATION_API_URL || 'https://vhkmsurabhi.com/api/socialmedia/addDonation';
-const EXTERNAL_API_KEY = process.env.EXTERNAL_DONATION_API_KEY;
+const EXTERNAL_API_KEY =
+  process.env.EXTERNAL_DONATION_API_KEY ||
+  process.env.DCC_API_KEY ||
+  process.env.DCC_KEY;
 
 const sendToExternalApi = async (donation, payment = {}) => {
   try {
     if (!EXTERNAL_API_KEY) {
-      throw new Error('EXTERNAL_DONATION_API_KEY is not configured');
+      throw new Error('External API key is not configured. Set EXTERNAL_DONATION_API_KEY (or DCC_API_KEY / DCC_KEY).');
     }
     
     const normalizePhone = (raw) => {
@@ -52,6 +55,7 @@ const sendToExternalApi = async (donation, payment = {}) => {
 
     const headers = {
       'DCC-Api-Key': EXTERNAL_API_KEY,
+      'x-api-key': EXTERNAL_API_KEY,
       'Content-Type': 'application/json'
     };
 

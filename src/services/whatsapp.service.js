@@ -56,15 +56,16 @@ const sendReceiptWhatsapp = async (phone, filePath, donorName, amount, sevaName,
   }
 
   const finalSevaName = normalizeSevaName(sevaName);
+  const PRIMARY_TEMPLATE = "common_donation_success_reciept";
+  const SUBSCRIPTION_TEMPLATE = "andseva_monthly_success_reciept";
+  const FALLBACK_TEMPLATE = "annadana_acknowledgement_receipt";
   const templateAttempts = [
-    { name: process.env.WHATSAPP_TEMPLATE_PRIMARY || "common_donation_success_reciept", includeSeva: true },
+    { name: PRIMARY_TEMPLATE, includeSeva: true },
     {
-      name:
-        process.env.WHATSAPP_TEMPLATE_SUBSCRIPTION ||
-        (paymentType === "subscription" ? "andseva_monthly_success_reciept" : "annadana_acknowledgement_receipt"),
+      name: paymentType === "subscription" ? SUBSCRIPTION_TEMPLATE : FALLBACK_TEMPLATE,
       includeSeva: false,
     },
-    { name: process.env.WHATSAPP_TEMPLATE_FALLBACK || "annadana_acknowledgement_receipt", includeSeva: false },
+    { name: FALLBACK_TEMPLATE, includeSeva: false },
   ];
 
   let lastError = null;
