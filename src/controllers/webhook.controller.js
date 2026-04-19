@@ -1,8 +1,16 @@
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const { donationModle } = require("../models/donation.model");
 const receiptService = require("../services/receipt.service");
 const whatsappService = require("../services/whatsapp.service");
 const externalDonationService = require("../services/externalDonation.service");
+
+const getReceiptFilePath = (donation) => {
+  const safeName = String(donation.name || "Donor").replace(/\s+/g, "_");
+  return path.join(__dirname, "../../receipts", `Donation_Receipt_${safeName}.pdf`);
+};
+
 const webHookControler = {
   webhook: async (req, res) => {
     try {
@@ -151,6 +159,53 @@ const webHookControler = {
                   }
                 } else if (latestDonation && latestDonation.receiptNumber) {
                   console.log("Receipt already generated. Receipt number:", latestDonation.receiptNumber);
+
+                  if (!latestDonation.whatsappSentAt) {
+                    try {
+                      let filePath = getReceiptFilePath(latestDonation);
+                      if (!fs.existsSync(filePath)) {
+                        console.log("Receipt file not found for resend; regenerating PDF...");
+                        filePath = await receiptService.generateReceipt(
+                          latestDonation,
+                          latestDonation.externalApiResponse || null,
+                        );
+                      }
+
+                      const phone = latestDonation.mobile.startsWith("91")
+                        ? latestDonation.mobile
+                        : `91${latestDonation.mobile}`;
+
+                      let paymentType = "normal";
+                      if (latestDonation.subscriptionId || latestDonation.isRecurring) {
+                        paymentType = "subscription";
+                      }
+
+                      const whatsappResponse = await whatsappService.sendReceiptWhatsapp(
+                        phone,
+                        filePath,
+                        latestDonation.name,
+                        latestDonation.amount,
+                        latestDonation.type || latestDonation.sevaName,
+                        paymentType,
+                      );
+
+                      await donationModle.findByIdAndUpdate(latestDonation._id, {
+                        $set: {
+                          whatsappSentAt: new Date(),
+                          whatsappResponse,
+                          whatsappLastError: null,
+                        },
+                      });
+                      console.log("WhatsApp resend sent successfully for existing receipt");
+                    } catch (resendError) {
+                      console.error("Error while resending WhatsApp for existing receipt:", resendError);
+                      await donationModle.findByIdAndUpdate(latestDonation._id, {
+                        $set: { whatsappLastError: String(resendError.message || resendError) },
+                      });
+                    }
+                  } else {
+                    console.log("WhatsApp already sent earlier at:", latestDonation.whatsappSentAt);
+                  }
                 } else {
                   console.log("Could not find donation for receipt generation");
                 }
