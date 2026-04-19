@@ -4,7 +4,14 @@ const {planModel} = require("../models/plan.model");
 const path = require("path");
 const fs = require("fs");
 const { generateReceipt } = require("../services/receipt.service");
+const whatsappService = require("../services/whatsapp.service");
 require("dotenv").config()
+
+const getReceiptFilePath = (donation) => {
+  const safeName = String(donation.name || "Donor").replace(/\s+/g, "_");
+  return path.join(__dirname, "../../receipts", `Donation_Receipt_${safeName}.pdf`);
+};
+
 const paymentController = {
   createOrder : async(req,res)=>{
     try {
@@ -242,6 +249,110 @@ downloadReceipt: async (req, res) => {
   } catch (error) {
     console.error("Get receipt data error:", error);
     res.status(500).json({ message: "Failed to fetch receipt data" });
+  }
+}
+,
+
+reconcileCapturedPayments: async (req, res) => {
+  try {
+    if (req.headers["x-internal-secret"] !== process.env.INTERNAL_SECRET) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const requestedLimit = Number(req.body?.limit || req.query?.limit || 50);
+    const limit = Number.isFinite(requestedLimit)
+      ? Math.max(1, Math.min(200, requestedLimit))
+      : 50;
+
+    const candidates = await donationModle
+      .find({ status: "created" })
+      .sort({ createdAt: -1 })
+      .limit(limit);
+
+    const summary = {
+      scanned: candidates.length,
+      capturedFound: 0,
+      reconciledToPaid: 0,
+      whatsappSent: 0,
+      errors: [],
+    };
+
+    for (const donation of candidates) {
+      try {
+        if (!donation.razorpayOrderId) {
+          continue;
+        }
+
+        const paymentCollection = await razorpay.orders.fetchPayments(donation.razorpayOrderId);
+        const capturedPayment = (paymentCollection.items || []).find(
+          (item) => item.status === "captured",
+        );
+
+        if (!capturedPayment) {
+          continue;
+        }
+
+        summary.capturedFound += 1;
+
+        const paidDonation = await donationModle.findByIdAndUpdate(
+          donation._id,
+          {
+            status: "paid",
+            razorpayPaymentId: capturedPayment.id,
+          },
+          { new: true },
+        );
+
+        if (!paidDonation) {
+          continue;
+        }
+
+        summary.reconciledToPaid += 1;
+
+        let receiptPath = getReceiptFilePath(paidDonation);
+        if (!paidDonation.receiptNumber || !fs.existsSync(receiptPath)) {
+          receiptPath = await generateReceipt(paidDonation, paidDonation.externalApiResponse || null);
+        }
+
+        if (!paidDonation.whatsappSentAt) {
+          const phone = paidDonation.mobile.startsWith("91")
+            ? paidDonation.mobile
+            : `91${paidDonation.mobile}`;
+          const paymentType =
+            paidDonation.subscriptionId || paidDonation.isRecurring ? "subscription" : "normal";
+
+          const whatsappResponse = await whatsappService.sendReceiptWhatsapp(
+            phone,
+            receiptPath,
+            paidDonation.name,
+            paidDonation.amount,
+            paidDonation.type || paidDonation.sevaName,
+            paymentType,
+          );
+
+          await donationModle.findByIdAndUpdate(paidDonation._id, {
+            $set: {
+              whatsappSentAt: new Date(),
+              whatsappResponse,
+              whatsappLastError: null,
+            },
+          });
+
+          summary.whatsappSent += 1;
+        }
+      } catch (error) {
+        summary.errors.push({
+          donationId: donation._id,
+          orderId: donation.razorpayOrderId,
+          error: String(error.message || error),
+        });
+      }
+    }
+
+    return res.status(200).json({ success: true, summary });
+  } catch (error) {
+    console.error("reconcileCapturedPayments error:", error);
+    return res.status(500).json({ message: "Reconciliation failed", error: String(error.message || error) });
   }
 }
 
