@@ -11,7 +11,7 @@ const donationSchema = new mongoose.Schema(
   occasion: { type: String, required: false },
   sevaDate: { type: String, required: false },
 
-  dob: { type: String, required: true },
+  dob: { type: String, required: false },
     amount: { type: Number, required: true },
     razorpayOrderId: String,
     razorpayPaymentId: String,
@@ -31,6 +31,9 @@ const donationSchema = new mongoose.Schema(
     receiptGeneratedAt: { type: Date },
   externalApiResponse: { type: Object },
   externalApiSentAt: { type: Date },
+  metaPurchaseResponse: { type: Object },
+  metaPurchaseSentAt: { type: Date },
+  metaPurchaseLastError: { type: String },
   receiptGenerationAttempts: { type: Number, default: 0 },
   receiptGenerationLastError: { type: String },
   whatsappSentAt: { type: Date },
