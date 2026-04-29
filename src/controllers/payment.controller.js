@@ -1,6 +1,7 @@
 const { razorpay } = require("../config/razorpay");
 const {donationModle} = require("../models/donation.model");
 const {planModel} = require("../models/plan.model");
+const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
 const { generateReceipt } = require("../services/receipt.service");
@@ -90,6 +91,74 @@ const paymentController = {
     res.status(500).json({ message: "Order creation failed" });
     }
   },
+
+ verifyPayment: async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
+    } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment verification details are required"
+      });
+    }
+
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
+
+    const expectedBuffer = Buffer.from(expectedSignature, "utf8");
+    const receivedBuffer = Buffer.from(razorpay_signature, "utf8");
+
+    if (
+      expectedBuffer.length !== receivedBuffer.length ||
+      !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment signature"
+      });
+    }
+
+    const payment = await razorpay.payments.fetch(razorpay_payment_id);
+
+    if (payment.order_id !== razorpay_order_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment order mismatch"
+      });
+    }
+
+    if (payment.status !== "captured") {
+      return res.status(202).json({
+        success: false,
+        message: `Payment is ${payment.status}. Waiting for capture confirmation.`
+      });
+    }
+
+    const summary = await finalizeCapturedPayment(payment, {
+      logPrefix: "Checkout verification finalized"
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment verified",
+      summary
+    });
+  } catch (error) {
+    console.error("verifyPayment error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Payment verification failed",
+      error: String(error.message || error)
+    });
+  }
+},
 
 
  createSubscription: async (req, res) => {
