@@ -17,6 +17,28 @@ function normalizePhone(mobile) {
   return digits.startsWith("91") ? digits : `91${digits}`;
 }
 
+function normalizeSevaName(donation) {
+  const raw = String(donation.type || donation.sevaName || "").trim();
+  const normalized = raw.toLowerCase();
+
+  if (normalized.includes("gau") || normalized.includes("go seva") || normalized.includes("cow")) {
+    return "Gau Seva";
+  }
+
+  if (
+    normalized.includes("annadaan") ||
+    normalized.includes("annadan") ||
+    normalized.includes("annadana") ||
+    normalized.includes("annadanam") ||
+    normalized.includes("meal") ||
+    normalized.includes("feed")
+  ) {
+    return "Annadaan Seva";
+  }
+
+  return raw || "Donation";
+}
+
 function paymentAmountMatchesDonation(payment, donation) {
   const paymentAmount = Number(payment?.amount || 0);
   const donationAmount = Number(donation?.amount || 0) * 100;
@@ -112,7 +134,7 @@ async function processReceiptAndWhatsapp(donation, apiResponse, summary) {
       receiptPath,
       latestDonation.name,
       latestDonation.amount,
-      latestDonation.type || latestDonation.sevaName,
+      normalizeSevaName(latestDonation),
       paymentType
     );
 

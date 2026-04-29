@@ -8,6 +8,28 @@ const whatsappService = require("../services/whatsapp.service");
 const { finalizeCapturedPayment } = require("../services/paymentFinalization.service");
 require("dotenv").config()
 
+function normalizeSevaName(type, sevaName) {
+  const raw = String(type || sevaName || "").trim();
+  const normalized = raw.toLowerCase();
+
+  if (normalized.includes("gau") || normalized.includes("go seva") || normalized.includes("cow")) {
+    return "Gau Seva";
+  }
+
+  if (
+    normalized.includes("annadaan") ||
+    normalized.includes("annadan") ||
+    normalized.includes("annadana") ||
+    normalized.includes("annadanam") ||
+    normalized.includes("meal") ||
+    normalized.includes("feed")
+  ) {
+    return "Annadaan Seva";
+  }
+
+  return raw;
+}
+
 const getReceiptFilePath = (donation) => {
   const safeName = String(donation.name || "Donor").replace(/\s+/g, "_");
   return path.join(__dirname, "../../receipts", `Donation_Receipt_${safeName}.pdf`);
@@ -17,7 +39,7 @@ const paymentController = {
   createOrder : async(req,res)=>{
     try {
         const {  name, email, mobile, Akshaya_tritiya, type, sevaName, occasion, sevaDate, dob, amount, certificate, panNumber, address, city, state, pincode, mahaprasadam, prasadamAddressOption, prasadamAddress } = req.body;
-        const resolvedSevaName = (type || sevaName || "").trim();
+        const resolvedSevaName = normalizeSevaName(type, sevaName);
 
       if (!name || !mobile || !resolvedSevaName || !amount || amount < 1) {
         return res.status(400).json({ message: "name, mobile, sevaName, and a valid amount are required" });
@@ -94,7 +116,7 @@ const paymentController = {
       prasadamAddress
     } = req.body;
 
-    const resolvedSevaName = (type || sevaName || "").trim();
+    const resolvedSevaName = normalizeSevaName(type, sevaName);
 
     if (!name || !mobile || !resolvedSevaName || !amount || amount < 1) {
       return res.status(400).json({ message: "name, mobile, sevaName, and a valid amount are required" });
