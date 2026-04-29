@@ -4,18 +4,21 @@ const { adminController } = require("../controllers/admin.controller");
 const { adminAuth } = require("../middlewares/admin.auth.middleware");
 const { adminSubscriptionController } = require("../controllers/admin.subscription.controller");
 const campaignController = require("../controllers/campaign.controller.js");
+const { bannerController } = require("../controllers/banner.controller");
 const adminRouter = express.Router();
 
 
+adminRouter.use(adminAuth);
+
 adminRouter.get("/utm-stats", adminController.getUtmStats);
-
-
-
 adminRouter.post("/create-campaign", campaignController.createCampaign);
 adminRouter.get("/campaigns", campaignController.listCampaigns);
 adminRouter.delete("/campaigns/:id", campaignController.deleteCampaign);
 
-adminRouter.use(adminAuth);
+adminRouter.get("/banners", bannerController.listAdminBanners);
+adminRouter.post("/banners", bannerController.createBanner);
+adminRouter.put("/banners/:id", bannerController.updateBanner);
+adminRouter.delete("/banners/:id", bannerController.deleteBanner);
 
 adminRouter.get("/dashboard/stats", adminController.getDashboardStats);
 adminRouter.get("/dashboard/recent-transactions", adminController.getRecentTransactions);

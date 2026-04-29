@@ -4,6 +4,7 @@ const { connectDb } = require("./src/config/db");
 const cookieParser = require("cookie-parser");
 const { paymentRouter } = require("./src/routes/payment.routes");
 const { adminRouter } = require("./src/routes/admin.routes");
+const { bannerRouter } = require("./src/routes/banner.routes");
 const authRouter = require("./src/routes/auth.routes");
 const cors = require("cors");
 const { donationModle } = require("./src/models/donation.model");
@@ -60,6 +61,7 @@ app.use(cookieParser());
 app.use("/api/payment", paymentRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/banners", bannerRouter);
 app.use("/public", express.static("public"));
 
 

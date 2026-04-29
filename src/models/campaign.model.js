@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 
 const campaignSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  baseUrl: { type: String },
+  landingPath: { type: String },
   utm: {
     source: { type: String, required: true },
     medium: { type: String },

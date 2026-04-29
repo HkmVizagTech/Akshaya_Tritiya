@@ -7,12 +7,12 @@ exports.deleteCampaign = async (req, res) => {
     const { id } = req.params;
     const deleted = await Campaign.findByIdAndDelete(id);
     if (!deleted) {
-      return res.status(404).json({ message: 'Campaign not found' });
+      return res.status(404).json({ success: false, message: 'Campaign not found' });
     }
-    res.json({ message: 'Campaign deleted' });
+    res.json({ success: true, message: 'Campaign deleted' });
   } catch (err) {
     console.error('Delete campaign error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -23,20 +23,24 @@ function normalizeCampaignName(name) {
 
 exports.createCampaign = async (req, res) => {
   try {
-    const { name, source, medium, campaign, content, term } = req.body;
+    const { name, source, medium, campaign, content, term, baseUrl, landingPath } = req.body;
     if (!name || !source || !campaign) {
-      return res.status(400).json({ message: 'Name, source, and campaign are required.' });
+      return res.status(400).json({ success: false, message: 'Name, source, and campaign are required.' });
     }
     const normalizedCampaign = normalizeCampaignName(campaign);
     
     const exists = await Campaign.findOne({ 'utm.campaign': normalizedCampaign });
     if (exists) {
-      return res.status(409).json({ message: 'Campaign with this name already exists.' });
+      return res.status(409).json({ success: false, message: 'Campaign with this name already exists.' });
     }
-    const baseUrl = process.env.CAMPAIGN_BASE_URL || 'https://akshaya-donation-hub.vercel.app';
-    const generatedUrl = `${baseUrl}?utm_source=${encodeURIComponent(source)}&utm_medium=${encodeURIComponent(medium||'')}&utm_campaign=${encodeURIComponent(normalizedCampaign)}${content ? `&utm_content=${encodeURIComponent(content)}` : ''}${term ? `&utm_term=${encodeURIComponent(term)}` : ''}`;
+    const configuredBaseUrl = process.env.CAMPAIGN_BASE_URL || 'https://iskconcharity.org';
+    const selectedBaseUrl = (baseUrl || configuredBaseUrl).replace(/\/$/, '');
+    const selectedLandingPath = landingPath?.startsWith('/') ? landingPath : '';
+    const generatedUrl = `${selectedBaseUrl}${selectedLandingPath}?utm_source=${encodeURIComponent(source)}&utm_medium=${encodeURIComponent(medium||'')}&utm_campaign=${encodeURIComponent(normalizedCampaign)}${content ? `&utm_content=${encodeURIComponent(content)}` : ''}${term ? `&utm_term=${encodeURIComponent(term)}` : ''}`;
     const campaignDoc = new Campaign({
       name,
+      baseUrl: selectedBaseUrl,
+      landingPath: selectedLandingPath,
       utm: {
         source,
         medium,
@@ -47,18 +51,18 @@ exports.createCampaign = async (req, res) => {
       generatedUrl
     });
     await campaignDoc.save();
-    res.status(201).json({ message: 'Campaign created', campaign: campaignDoc });
+    res.status(201).json({ success: true, message: 'Campaign created', campaign: campaignDoc });
   } catch (err) {
     console.error('Create campaign error:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
 exports.listCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find().sort({ createdAt: -1 });
-    res.json({ campaigns });
+    res.json({ success: true, campaigns });
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
