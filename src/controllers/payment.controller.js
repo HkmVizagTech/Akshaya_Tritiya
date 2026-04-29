@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs");
 const { generateReceipt } = require("../services/receipt.service");
 const whatsappService = require("../services/whatsapp.service");
+const { finalizeCapturedPayment } = require("../services/paymentFinalization.service");
 require("dotenv").config()
 
 const getReceiptFilePath = (donation) => {
@@ -255,7 +256,7 @@ downloadReceipt: async (req, res) => {
 
 reconcileCapturedPayments: async (req, res) => {
   try {
-    if (req.headers["x-internal-secret"] !== process.env.INTERNAL_SECRET) {
+    if (!req.admin && req.headers["x-internal-secret"] !== process.env.INTERNAL_SECRET) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
@@ -265,7 +266,7 @@ reconcileCapturedPayments: async (req, res) => {
       : 50;
 
     const candidates = await donationModle
-      .find({ status: "created" })
+      .find({ status: { $in: ["created", "pending"] } })
       .sort({ createdAt: -1 })
       .limit(limit);
 
@@ -294,51 +295,18 @@ reconcileCapturedPayments: async (req, res) => {
 
         summary.capturedFound += 1;
 
-        const paidDonation = await donationModle.findByIdAndUpdate(
-          donation._id,
-          {
-            status: "paid",
-            razorpayPaymentId: capturedPayment.id,
-          },
-          { new: true },
-        );
+        const finalized = await finalizeCapturedPayment(capturedPayment, {
+          logPrefix: "Manual reconciliation finalized"
+        });
 
-        if (!paidDonation) {
-          continue;
-        }
-
-        summary.reconciledToPaid += 1;
-
-        let receiptPath = getReceiptFilePath(paidDonation);
-        if (!paidDonation.receiptNumber || !fs.existsSync(receiptPath)) {
-          receiptPath = await generateReceipt(paidDonation, paidDonation.externalApiResponse || null);
-        }
-
-        if (!paidDonation.whatsappSentAt) {
-          const phone = paidDonation.mobile.startsWith("91")
-            ? paidDonation.mobile
-            : `91${paidDonation.mobile}`;
-          const paymentType =
-            paidDonation.subscriptionId || paidDonation.isRecurring ? "subscription" : "normal";
-
-          const whatsappResponse = await whatsappService.sendReceiptWhatsapp(
-            phone,
-            receiptPath,
-            paidDonation.name,
-            paidDonation.amount,
-            paidDonation.type || paidDonation.sevaName,
-            paymentType,
-          );
-
-          await donationModle.findByIdAndUpdate(paidDonation._id, {
-            $set: {
-              whatsappSentAt: new Date(),
-              whatsappResponse,
-              whatsappLastError: null,
-            },
+        if (finalized.markedPaid || finalized.alreadyPaid) summary.reconciledToPaid += 1;
+        if (finalized.whatsappSent) summary.whatsappSent += 1;
+        if (finalized.nonFatalErrors?.length) {
+          summary.errors.push({
+            donationId: donation._id,
+            orderId: donation.razorpayOrderId,
+            error: finalized.nonFatalErrors.join("; "),
           });
-
-          summary.whatsappSent += 1;
         }
       } catch (error) {
         summary.errors.push({
