@@ -16,7 +16,10 @@ const app = express();
 const defaultAllowedOrigins = [
   "https://akshaya-donation-hub.vercel.app",
   "https://annadan.harekrishnavizag.org",
+  "https://iskconcharity.org",
+  "https://www.iskconcharity.org",
   "http://localhost:5173",
+  "http://localhost:3000",
 ];
 
 const allowedOrigins = process.env.CORS_ORIGINS

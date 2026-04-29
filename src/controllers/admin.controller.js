@@ -307,6 +307,7 @@ const adminController = {
           mahaprasadam: txn.mahaprasadam,
           prasadamAddressOption: txn.prasadamAddressOption,
           prasadamAddress: txn.prasadamAddress,
+          utm: txn.utm,
           receiptNumber: txn.receiptNumber,
           receiptGeneratedAt: txn.receiptGeneratedAt,
           subscriptionId: txn.subscriptionId
