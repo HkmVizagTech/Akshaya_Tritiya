@@ -17,6 +17,21 @@ function normalizePhone(mobile) {
   return digits.startsWith("91") ? digits : `91${digits}`;
 }
 
+function normalizeContactForStorage(contact) {
+  const digits = String(contact || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.length > 10 && digits.startsWith("91") ? digits.slice(2) : digits;
+}
+
+function shouldReplaceContact(value) {
+  const normalized = String(value || "").replace(/\D/g, "");
+  return !normalized || /^(\d)\1{9}$/.test(normalized);
+}
+
+function shouldReplaceEmail(value) {
+  return !String(value || "").trim();
+}
+
 function normalizeSevaName(donation) {
   const raw = String(donation.type || donation.sevaName || "").trim();
   const normalized = raw.toLowerCase();
@@ -204,14 +219,25 @@ async function finalizeCapturedPayment(payment, options = {}) {
     throw new Error(`Unexpected payment currency: ${payment.currency}`);
   }
 
+  const contactFromPayment = normalizeContactForStorage(payment.contact);
+  const setFields = {
+    status: "paid",
+    razorpayPaymentId: payment.id,
+    lastPaymentDate: payment.created_at ? new Date(payment.created_at * 1000) : new Date()
+  };
+
+  if (contactFromPayment && shouldReplaceContact(existingDonation.mobile)) {
+    setFields.mobile = contactFromPayment;
+  }
+
+  if (payment.email && shouldReplaceEmail(existingDonation.email)) {
+    setFields.email = payment.email;
+  }
+
   const donation = await donationModle.findOneAndUpdate(
     { razorpayOrderId: payment.order_id },
     {
-      $set: {
-        status: "paid",
-        razorpayPaymentId: payment.id,
-        lastPaymentDate: payment.created_at ? new Date(payment.created_at * 1000) : new Date()
-      }
+      $set: setFields
     },
     { new: true }
   );
